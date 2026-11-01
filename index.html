@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ZeroTrace - Permanent Image Redactor & EXIF Remover</title>
+  <meta name="title" content="ZeroTrace - Permanent Image Redactor & EXIF Remover">
+  <meta name="description" content="Blackout sensitive text on photos, screenshots, and documents permanently. 100% client-side tool strips EXIF location data with zero server uploads.">
+  <meta name="keywords" content="blackout text on image permanently, redact image online free, remove exif metadata from photo, hide SSN on screenshot, safe document redactor">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-color: #f4f4f7;
+      --card-bg: #ffffff;
+      --text-main: #333333;
+      --text-muted: #474c5f;
+      --primary-red: #e5322d;
+      --primary-red-hover: #d02621;
+      --border-color: #e2e2e8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header */
+    header.navbar {
+      background: #ffffff;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 0 40px;
+      height: 60px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: #161616;
+      text-decoration: none;
+      letter-spacing: -0.8px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .logo span { color: var(--primary-red); }
+
+    .bmc-button {
+      background-color: #FFDD00;
+      color: #000000;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity 0.2s;
+    }
+
+    .bmc-button:hover { opacity: 0.9; }
+
+    /* Main Container */
+    main.content {
+      flex: 1;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 60px 20px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .hero-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #333333;
+      margin-bottom: 12px;
+      letter-spacing: -0.8px;
+      line-height: 1.15;
+    }
+
+    .hero-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 620px;
+      margin-bottom: 32px;
+      font-weight: 400;
+      line-height: 1.45;
+    }
+
+    /* Upload Button Box for Android Fix */
+    .upload-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+
+    .btn-wrapper {
+      position: relative;
+      display: inline-block;
+      overflow: hidden;
+    }
+
+    .select-btn {
+      background-color: var(--primary-red);
+      color: #ffffff;
+      padding: 18px 48px;
+      border-radius: 10px;
+      font-size: 1.35rem;
+      font-weight: 700;
+      display: inline-block;
+      box-shadow: 0 4px 14px rgba(229, 50, 45, 0.35);
+      letter-spacing: -0.3px;
+      pointer-events: none;
+    }
+
+    /* Native file input layered directly over button for Android compatibility */
+    .file-input-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      font-size: 0;
+    }
+
+    .drop-hint {
+      margin-top: 12px;
+      font-size: 0.88rem;
+      color: #707584;
+      font-weight: 500;
+    }
+
+    /* Canvas Section */
+    .editor-section {
+      width: 100%;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    .controls-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      border: 1px solid #d1d5db;
+      background: #ffffff;
+      color: #374151;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn:hover:not(:disabled) { background: #f3f4f6; }
+
+    .btn-primary {
+      background: var(--primary-red);
+      color: #ffffff;
+      border: none;
+    }
+
+    .btn-primary:hover:not(:disabled) { background: var(--primary-red-hover); }
+
+    .btn-danger {
+      color: #dc2626;
+      border-color: #fca5a5;
+    }
+
+    .btn-danger:hover:not(:disabled) { background: #fef2f2; }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .canvas-container {
+      width: 100%;
+      max-height: 60vh;
+      overflow: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #f9fafb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      touch-action: none;
+    }
+
+    canvas {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    footer {
+      background: #ffffff;
+      border-top: 1px solid #e0e0e0;
+      padding: 16px 20px;
+      text-align: center;
+      font-size: 0.82rem;
+      color: #707584;
+    }
+
+    @media (max-width: 600px) {
+      header.navbar { padding: 0 16px; }
+      main.content { padding: 36px 16px 24px; }
+      .hero-title { font-size: 1.85rem; }
+      .hero-subtitle { font-size: 0.95rem; margin-bottom: 24px; }
+      .btn-wrapper, .select-btn { width: 100%; text-align: center; }
+      .select-btn { padding: 16px 20px; font-size: 1.15rem; }
+      .controls-bar { flex-direction: column; width: 100%; }
+      .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="navbar">
+    <a href="#" class="logo">ZERO<span>TRACE</span></a>
+    <a href="https://www.buymeacoffee.com" target="_blank" rel="noopener" class="bmc-button">☕ Buy me a coffee</a>
+  </header>
+
+  <main class="content">
+    <h1 class="hero-title">Redact Image & Strip Metadata</h1>
+    <p class="hero-subtitle">Blackout sensitive details and erase embedded GPS location data permanently inside your browser. 100% private, zero uploads.</p>
+
+    <div class="upload-container" id="dropArea">
+      <div class="btn-wrapper" id="uploadWrapper">
+        <div class="select-btn">Select Image file</div>
+        <input type="file" id="fileInput" class="file-input-overlay" accept="image/*">
+      </div>
+      <p class="drop-hint" id="dropHint">or drop image here</p>
+
+      <div class="editor-section" id="editorSection">
+        <div class="controls-bar">
+          <button class="btn" id="undoBtn" disabled>↩ Undo</button>
+          <button class="btn btn-danger" id="clearBtn">🗑 Clear All</button>
+          <button class="btn btn-primary" id="downloadBtn">💾 Save Redacted Image</button>
+        </div>
+
+        <div class="canvas-container">
+          <canvas id="imageCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    © 2026 ZeroTrace ® - Your Private Image Redactor
+  </footer>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const uploadWrapper = document.getElementById('uploadWrapper');
+    const dropHint = document.getElementById('dropHint');
+    const editorSection = document.getElementById('editorSection');
+    const canvas = document.getElementById('imageCanvas');
+    const ctx = canvas.getContext('2d');
+    const undoBtn = document.getElementById('undoBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const dropArea = document.getElementById('dropArea');
+
+    let currentImg = null;
+    let historyStack = [];
+    let isDrawing = false;
+    let startX, startY;
+
+    // Direct change listener using Blob Object URLs for Android support
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        loadImage(e.target.files[0]);
+      }
+    });
+
+    // Drag & Drop for desktop
+    dropArea.addEventListener('dragover', (e) => { e.preventDefault(); });
+    dropArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        loadImage(e.dataTransfer.files[0]);
+      }
+    });
+
+    function loadImage(file) {
+      // URL.createObjectURL directly creates a local blob stream bypassing Android FileReader permissions
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+
+      img.onload = () => {
+        currentImg = img;
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        historyStack = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
+
+        uploadWrapper.style.display = 'none';
+        dropHint.style.display = 'none';
+        editorSection.style.display = 'flex';
+        undoBtn.disabled = true;
+
+        URL.revokeObjectURL(objectUrl);
+      };
+
+      img.src = objectUrl;
+    }
+
+    function getCoords(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+      };
+    }
+
+    function startRedact(e) {
+      if (!currentImg) return;
+      isDrawing = true;
+      const coords = getCoords(e);
+      startX = coords.x;
+      startY = coords.y;
+    }
+
+    function endRedact(e) {
+      if (!isDrawing) return;
+      isDrawing = false;
+
+      const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+      const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const endX = (clientX - rect.left) * scaleX;
+      const endY = (clientY - rect.top) * scaleY;
+
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(startX, startY, endX - startX, endY - startY);
+
+      historyStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+      undoBtn.disabled = historyStack.length <= 1;
+    }
+
+    canvas.addEventListener('mousedown', startRedact);
+    canvas.addEventListener('mouseup', endRedact);
+
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startRedact(e); }, { passive: false });
+    canvas.addEventListener('touchend', (e) => { e.preventDefault(); endRedact(e); }, { passive: false });
+
+    undoBtn.addEventListener('click', () => {
+      if (historyStack.length > 1) {
+        historyStack.pop();
+        ctx.putImageData(historyStack[historyStack.length - 1], 0, 0);
+      }
+      undoBtn.disabled = historyStack.length <= 1;
+    });
+
+    clearBtn.addEventListener('click', () => {
+      if (!currentImg) return;
+      ctx.drawImage(currentImg, 0, 0);
+      historyStack = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
+      undoBtn.disabled = true;
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = `redacted_${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+  </script>
+</body>
+</html>
