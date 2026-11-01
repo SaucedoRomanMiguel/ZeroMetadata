@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  
+  <title>ZeroTrace - Censor de Imágenes y Limpiador de Metadatos</title>
+  <meta name="title" content="ZeroTrace - Censor de Imágenes y Limpiador de Metadatos">
+  <meta name="description" content="Tapa información confidencial en fotos y elimina datos GPS sin subir nada a ningún servidor.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-color: #f4f4f7;
+      --card-bg: #ffffff;
+      --text-main: #333333;
+      --text-muted: #474c5f;
+      --primary-red: #e5322d;
+      --primary-red-hover: #d02621;
+      --border-color: #e2e2e8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header.navbar {
+      background: #ffffff;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 0 40px;
+      height: 60px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: #161616;
+      text-decoration: none;
+      letter-spacing: -0.8px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .logo span { color: var(--primary-red); }
+
+    .bmc-button {
+      background-color: #FFDD00;
+      color: #000000;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity 0.2s;
+    }
+
+    .bmc-button:hover { opacity: 0.9; }
+
+    main.content {
+      flex: 1;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .hero-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #333333;
+      margin-bottom: 12px;
+      letter-spacing: -0.8px;
+      line-height: 1.15;
+    }
+
+    .hero-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 620px;
+      margin-bottom: 28px;
+      font-weight: 400;
+      line-height: 1.45;
+    }
+
+    .upload-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+
+    .btn-wrapper {
+      position: relative;
+      display: inline-block;
+      overflow: hidden;
+    }
+
+    .select-btn {
+      background-color: var(--primary-red);
+      color: #ffffff;
+      padding: 18px 48px;
+      border-radius: 10px;
+      font-size: 1.35rem;
+      font-weight: 700;
+      display: inline-block;
+      box-shadow: 0 4px 14px rgba(229, 50, 45, 0.35);
+      letter-spacing: -0.3px;
+      pointer-events: none;
+    }
+
+    .file-input-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      font-size: 0;
+    }
+
+    .drop-hint {
+      margin-top: 12px;
+      font-size: 0.88rem;
+      color: #707584;
+      font-weight: 500;
+    }
+
+    /* Editor Viewport & Canvas Area */
+    .editor-section {
+      width: 100%;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    .toolbar-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .btn {
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: 1px solid #d1d5db;
+      background: #ffffff;
+      color: #374151;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-mode {
+      background: #f3f4f6;
+      border-color: #cbd5e1;
+    }
+
+    .btn-mode.active {
+      background: #1e293b;
+      color: #ffffff;
+      border-color: #1e293b;
+    }
+
+    .btn-primary {
+      background: var(--primary-red);
+      color: #ffffff;
+      border: none;
+    }
+
+    .btn-primary:hover:not(:disabled) { background: var(--primary-red-hover); }
+
+    .btn-danger {
+      color: #dc2626;
+      border-color: #fca5a5;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .canvas-viewport {
+      width: 100%;
+      height: 65vh;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #2a2d34;
+      position: relative;
+      touch-action: none;
+      cursor: grab;
+    }
+
+    .canvas-viewport:active { cursor: grabbing; }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: 0 0;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    footer {
+      background: #ffffff;
+      border-top: 1px solid #e0e0e0;
+      padding: 16px 20px;
+      text-align: center;
+      font-size: 0.82rem;
+      color: #707584;
+    }
+
+    @media (max-width: 600px) {
+      header.navbar { padding: 0 16px; }
+      main.content { padding: 20px 10px; }
+      .hero-title { font-size: 1.6rem; }
+      .hero-subtitle { font-size: 0.9rem; margin-bottom: 20px; }
+      .btn-wrapper, .select-btn { width: 100%; text-align: center; }
+      .select-btn { padding: 16px 20px; font-size: 1.1rem; }
+      .canvas-viewport { height: 72vh; }
+      .toolbar-group { gap: 6px; }
+      .btn { padding: 8px 12px; font-size: 0.82rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="navbar">
+    <a href="#" class="logo">ZERO<span>TRACE</span></a>
+    <a href="https://www.buymeacoffee.com" target="_blank" rel="noopener" class="bmc-button">☕ Invitame un café</a>
+  </header>
+
+  <main class="content">
+    <h1 class="hero-title" id="titleText">Censura Fotos sin Subir Archivos</h1>
+    <p class="hero-subtitle" id="subtitleText">Tapa información sensible y elimina ubicaciones GPS de tus fotos directamente en tu navegador.</p>
+
+    <div class="upload-container" id="dropArea">
+      <div class="btn-wrapper" id="uploadWrapper">
+        <div class="select-btn">Seleccionar Imagen</div>
+        <input type="file" id="fileInput" class="file-input-overlay" accept="image/*">
+      </div>
+      <p class="drop-hint" id="dropHint">o arrastra la imagen aquí</p>
+
+      <div class="editor-section" id="editorSection">
+        <div class="toolbar-group">
+          <button class="btn btn-mode active" id="panModeBtn">🖐️ Mover / Zoom</button>
+          <button class="btn btn-mode" id="drawModeBtn">✏️ Redactar</button>
+          <button class="btn" id="zoomInBtn">🔍 +</button>
+          <button class="btn" id="zoomOutBtn">🔍 -</button>
+          <button class="btn" id="undoBtn" disabled>↩ Deshacer</button>
+          <button class="btn btn-danger" id="clearBtn">🗑 Borrar</button>
+          <button class="btn btn-primary" id="downloadBtn">💾 Guardar</button>
+        </div>
+
+        <div class="canvas-viewport" id="viewport">
+          <canvas id="imageCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    © 2026 ZeroTrace ® - Herramienta Privada de Redacción
+  </footer>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const uploadWrapper = document.getElementById('uploadWrapper');
+    const dropHint = document.getElementById('dropHint');
+    const editorSection = document.getElementById('editorSection');
+    const viewport = document.getElementById('viewport');
+    const canvas = document.getElementById('imageCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const panModeBtn = document.getElementById('panModeBtn');
+    const drawModeBtn = document.getElementById('drawModeBtn');
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    const undoBtn = document.getElementById('undoBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const dropArea = document.getElementById('dropArea');
+
+    let currentImg = null;
+    let historyStack = [];
+    
+    // Transform State (Pan & Zoom)
+    let scale = 1;
+    let panX = 0;
+    let panY = 0;
+    let currentMode = 'pan'; // 'pan' or 'draw'
+
+    // Interaction states
+    let isInteracting = false;
+    let startX = 0, startY = 0;
+    let initialPinchDist = null;
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        loadImage(e.target.files[0]);
+      }
+    });
+
+    dropArea.addEventListener('dragover', (e) => { e.preventDefault(); });
+    dropArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        loadImage(e.dataTransfer.files[0]);
+      }
+    });
+
+    function loadImage(file) {
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+
+      img.onload = () => {
+        currentImg = img;
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        historyStack = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
+
+        uploadWrapper.style.display = 'none';
+        dropHint.style.display = 'none';
+        document.getElementById('titleText').style.display = 'none';
+        document.getElementById('subtitleText').style.display = 'none';
+        editorSection.style.display = 'flex';
+        
+        // Auto fit image inside viewport
+        resetTransform();
+        URL.revokeObjectURL(objectUrl);
+      };
+
+      img.src = objectUrl;
+    }
+
+    function resetTransform() {
+      const vRect = viewport.getBoundingClientRect();
+      const scaleX = vRect.width / canvas.width;
+      const scaleY = vRect.height / canvas.height;
+      scale = Math.min(scaleX, scaleY) * 0.95;
+      panX = (vRect.width - canvas.width * scale) / 2;
+      panY = (vRect.height - canvas.height * scale) / 2;
+      applyTransform();
+    }
+
+    function applyTransform() {
+      canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+    }
+
+    // Mode Switching
+    panModeBtn.addEventListener('click', () => setMode('pan'));
+    drawModeBtn.addEventListener('click', () => setMode('draw'));
+
+    function setMode(mode) {
+      currentMode = mode;
+      if (mode === 'pan') {
+        panModeBtn.classList.add('active');
+        drawModeBtn.classList.remove('active');
+        viewport.style.cursor = 'grab';
+      } else {
+        drawModeBtn.classList.add('active');
+        panModeBtn.classList.remove('active');
+        viewport.style.cursor = 'crosshair';
+      }
+    }
+
+    // Zoom Controls
+    zoomInBtn.addEventListener('click', () => { scale *= 1.25; applyTransform(); });
+    zoomOutBtn.addEventListener('click', () => { scale /= 1.25; applyTransform(); });
+
+    // Multi-touch & Mouse Event handling
+    function getCanvasCoords(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const rawX = (clientX - rect.left) / scale;
+      const rawY = (clientY - rect.top) / scale;
+      return { x: rawX, y: rawY };
+    }
+
+    function handleStart(e) {
+      if (e.touches && e.touches.length === 2) {
+        initialPinchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        return;
+      }
+
+      isInteracting = true;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      if (currentMode === 'pan') {
+        startX = clientX - panX;
+        startY = clientY - panY;
+      } else {
+        const coords = getCanvasCoords(clientX, clientY);
+        startX = coords.x;
+        startY = coords.y;
+      }
+    }
+
+    function handleMove(e) {
+      // Pinch to zoom gesture
+      if (e.touches && e.touches.length === 2 && initialPinchDist) {
+        const currentDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const zoomFactor = currentDist / initialPinchDist;
+        scale *= zoomFactor;
+        initialPinchDist = currentDist;
+        applyTransform();
+        return;
+      }
+
+      if (!isInteracting) return;
+
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      if (currentMode === 'pan') {
+        panX = clientX - startX;
+        panY = clientY - startY;
+        applyTransform();
+      }
+    }
+
+    function handleEnd(e) {
+      initialPinchDist = null;
+      if (!isInteracting) return;
+      isInteracting = false;
+
+      if (currentMode === 'draw') {
+        const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+        const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+        const endCoords = getCanvasCoords(clientX, clientY);
+
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(startX, startY, endCoords.x - startX, endCoords.y - startY);
+
+        historyStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+        undoBtn.disabled = historyStack.length <= 1;
+      }
+    }
+
+    // Viewport Touch and Mouse Listeners
+    viewport.addEventListener('mousedown', handleStart);
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+
+    viewport.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(e); }, { passive: false });
+    window.addEventListener('touchmove', (e) => { handleMove(e); }, { passive: false });
+    window.addEventListener('touchend', (e) => { handleEnd(e); });
+
+    undoBtn.addEventListener('click', () => {
+      if (historyStack.length > 1) {
+        historyStack.pop();
+        ctx.putImageData(historyStack[historyStack.length - 1], 0, 0);
+      }
+      undoBtn.disabled = historyStack.length <= 1;
+    });
+
+    clearBtn.addEventListener('click', () => {
+      if (!currentImg) return;
+      ctx.drawImage(currentImg, 0, 0);
+      historyStack = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
+      undoBtn.disabled = true;
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = `redactado_${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+  </script>
+</body>
+</html>
